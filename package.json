@@ -10,8 +10,12 @@
     "test:watch": "vitest",
     "lint": "eslint src/"
   },
+  "bin": {
+    "sorosave": "./dist/cli.js"
+  },
   "dependencies": {
-    "@stellar/stellar-sdk": "^13.0.0"
+    "@stellar/stellar-sdk": "^13.0.0",
+    "commander": "^11.0.0"
   },
   "devDependencies": {
     "typescript": "^5.5.0",
