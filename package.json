@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "TypeScript SDK for SoroSave — Decentralized Group Savings Protocol on Soroban",
   "main": "dist/index.js",
+  "bin": {
+    "sorosave": "./dist/cli.js"
+  },
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
