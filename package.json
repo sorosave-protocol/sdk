@@ -4,6 +4,16 @@
   "description": "TypeScript SDK for SoroSave — Decentralized Group Savings Protocol on Soroban",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
@@ -17,10 +27,21 @@
     "@stellar/stellar-sdk": "^13.0.0",
     "commander": "^11.0.0"
   },
+  "peerDependencies": {
+    "react": ">=17.0.0",
+    "@stellar/stellar-sdk": "^13.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "react": "^18.0.0",
     "typescript": "^5.5.0",
-    "vitest": "^2.0.0",
-    "@types/node": "^20.0.0"
+    "vitest": "^2.0.0"
   },
   "license": "MIT",
   "repository": {
@@ -35,6 +56,8 @@
     "savings",
     "ajo",
     "susu",
-    "chit-fund"
+    "chit-fund",
+    "react",
+    "hooks"
   ]
 }
