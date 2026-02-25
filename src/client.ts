@@ -6,6 +6,8 @@ import {
   CreateGroupParams,
   GroupStatus,
 } from "./types";
+import { WalletAdapter } from "./wallets";
+import { BatchBuilder } from "./batch";
 
 /**
  * SoroSave SDK Client
@@ -17,11 +19,43 @@ export class SoroSaveClient {
   private server: StellarSdk.rpc.Server;
   private contractId: string;
   private networkPassphrase: string;
+  private walletAdapter?: WalletAdapter;
 
-  constructor(config: SoroSaveConfig) {
+  constructor(config: SoroSaveConfig, walletAdapter?: WalletAdapter) {
     this.server = new StellarSdk.rpc.Server(config.rpcUrl);
     this.contractId = config.contractId;
     this.networkPassphrase = config.networkPassphrase;
+    this.walletAdapter = walletAdapter;
+  }
+
+  setWalletAdapter(walletAdapter: WalletAdapter): this {
+    this.walletAdapter = walletAdapter;
+    return this;
+  }
+
+  async buildAndSignTransaction(
+    operation: StellarSdk.xdr.Operation,
+    sourcePublicKey: string
+  ): Promise<StellarSdk.Transaction> {
+    const tx = await this.buildTransaction(operation, sourcePublicKey);
+
+    if (!this.walletAdapter) {
+      throw new Error("Wallet adapter is not configured.");
+    }
+
+    return this.walletAdapter.signTransaction(tx, this.networkPassphrase);
+  }
+
+  createBatchBuilder(): BatchBuilder {
+    return new BatchBuilder();
+  }
+
+  async buildBatchTransaction(
+    sourcePublicKey: string,
+    batch: BatchBuilder
+  ): Promise<StellarSdk.Transaction> {
+    const account = await this.server.getAccount(sourcePublicKey);
+    return batch.buildTransaction(account, this.networkPassphrase);
   }
 
   // ─── Group Lifecycle ────────────────────────────────────────────
