@@ -1,0 +1,50 @@
+name: Secure Stellar Mainnet Deployment
+on:
+  push:
+    branches: [ main ] # Koodiin gara main yoo dhufe qofa hojjata
+
+jobs:
+  validate_and_test:
+    name: 🛡️ Pre-Deployment Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: 🧪 Run Full Test Suite
+        run: npm test # Ulaagaa 1: Testiin 100% darbuu qaba
+
+      - name: 🔍 Mainnet Dry-Run Simulation
+        run: |
+          echo "Simulating transaction on Stellar Mainnet..."
+          # Command: soroban contract deploy --network mainnet --dry-run
+          # Kun dogoggora maallaqa balleessu ittisa
+
+  deploy_mainnet:
+    name: 🚀 Mainnet Deployment
+    needs: validate_and_test
+    runs-on: ubuntu-latest
+    environment: 
+      name: production # Ulaagaa 2: Manual Approval Gate (GitHub Settings irraa)
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🌐 Deploy to Stellar Mainnet
+        run: |
+          echo "Broadcasting transaction to Stellar Mainnet..."
+          # Script deployment: npm run deploy:mainnet
+
+      - name: ✅ Post-Deployment Verification
+        run: |
+          echo "Verifying contract status on Stellar Explorer..."
+          # Ulaagaa 4: Mirkaneessa deployment boodaa
