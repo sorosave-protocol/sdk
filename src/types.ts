@@ -52,7 +52,14 @@ export interface SoroSaveConfig {
   networkPassphrase: string;
 }
 
+export type AccountSequence = string | number | bigint;
+
 export interface TransactionResult<T = void> {
   result: T;
   txHash: string;
+}
+
+export interface SubmittedTransaction {
+  hash: string;
+  status: string;
 }
