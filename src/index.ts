@@ -8,6 +8,8 @@ export {
   type Dispute,
   type CreateGroupParams,
   type SoroSaveConfig,
+  type AccountSequence,
+  type SubmittedTransaction,
   type TransactionResult,
 } from "./types";
 export {

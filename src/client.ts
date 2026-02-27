@@ -5,6 +5,8 @@ import {
   RoundInfo,
   CreateGroupParams,
   GroupStatus,
+  AccountSequence,
+  SubmittedTransaction,
 } from "./types";
 import { WalletAdapter } from "./wallets";
 import { BatchBuilder } from "./batch";
@@ -46,6 +48,32 @@ export class SoroSaveClient {
     return this.walletAdapter.signTransaction(tx, this.networkPassphrase);
   }
 
+  buildOffline(
+    operation: StellarSdk.xdr.Operation,
+    sourcePublicKey: string,
+    sequenceNumber: AccountSequence
+  ): string {
+    return this.buildOfflineTransaction(
+      operation,
+      sourcePublicKey,
+      sequenceNumber
+    ).toXDR();
+  }
+
+  async submitSignedTransaction(
+    signedXdr: string
+  ): Promise<SubmittedTransaction> {
+    const tx = new StellarSdk.Transaction(signedXdr, this.networkPassphrase);
+    const submission = await this.server.sendTransaction(tx);
+    const status =
+      "status" in submission ? String(submission.status) : "PENDING";
+
+    return {
+      hash: submission.hash,
+      status,
+    };
+  }
+
   createBatchBuilder(): BatchBuilder {
     return new BatchBuilder();
   }
@@ -81,6 +109,25 @@ export class SoroSaveClient {
     return this.buildTransaction(op, source);
   }
 
+  createGroupBuildOffline(
+    params: CreateGroupParams,
+    source: string,
+    sequenceNumber: AccountSequence
+  ): string {
+    const contract = new StellarSdk.Contract(this.contractId);
+    const op = contract.call(
+      "create_group",
+      new StellarSdk.Address(params.admin).toScVal(),
+      StellarSdk.nativeToScVal(params.name, { type: "string" }),
+      new StellarSdk.Address(params.token).toScVal(),
+      StellarSdk.nativeToScVal(params.contributionAmount, { type: "i128" }),
+      StellarSdk.nativeToScVal(params.cycleLength, { type: "u64" }),
+      StellarSdk.nativeToScVal(params.maxMembers, { type: "u32" })
+    );
+
+    return this.buildOffline(op, source, sequenceNumber);
+  }
+
   /**
    * Join an existing group.
    */
@@ -97,6 +144,22 @@ export class SoroSaveClient {
     );
 
     return this.buildTransaction(op, source);
+  }
+
+  joinGroupBuildOffline(
+    member: string,
+    groupId: number,
+    source: string,
+    sequenceNumber: AccountSequence
+  ): string {
+    const contract = new StellarSdk.Contract(this.contractId);
+    const op = contract.call(
+      "join_group",
+      new StellarSdk.Address(member).toScVal(),
+      StellarSdk.nativeToScVal(groupId, { type: "u64" })
+    );
+
+    return this.buildOffline(op, source, sequenceNumber);
   }
 
   /**
@@ -117,6 +180,22 @@ export class SoroSaveClient {
     return this.buildTransaction(op, source);
   }
 
+  leaveGroupBuildOffline(
+    member: string,
+    groupId: number,
+    source: string,
+    sequenceNumber: AccountSequence
+  ): string {
+    const contract = new StellarSdk.Contract(this.contractId);
+    const op = contract.call(
+      "leave_group",
+      new StellarSdk.Address(member).toScVal(),
+      StellarSdk.nativeToScVal(groupId, { type: "u64" })
+    );
+
+    return this.buildOffline(op, source, sequenceNumber);
+  }
+
   /**
    * Start the group (admin only).
    */
@@ -133,6 +212,22 @@ export class SoroSaveClient {
     );
 
     return this.buildTransaction(op, source);
+  }
+
+  startGroupBuildOffline(
+    admin: string,
+    groupId: number,
+    source: string,
+    sequenceNumber: AccountSequence
+  ): string {
+    const contract = new StellarSdk.Contract(this.contractId);
+    const op = contract.call(
+      "start_group",
+      new StellarSdk.Address(admin).toScVal(),
+      StellarSdk.nativeToScVal(groupId, { type: "u64" })
+    );
+
+    return this.buildOffline(op, source, sequenceNumber);
   }
 
   // ─── Contributions ──────────────────────────────────────────────
@@ -155,6 +250,22 @@ export class SoroSaveClient {
     return this.buildTransaction(op, source);
   }
 
+  contributeBuildOffline(
+    member: string,
+    groupId: number,
+    source: string,
+    sequenceNumber: AccountSequence
+  ): string {
+    const contract = new StellarSdk.Contract(this.contractId);
+    const op = contract.call(
+      "contribute",
+      new StellarSdk.Address(member).toScVal(),
+      StellarSdk.nativeToScVal(groupId, { type: "u64" })
+    );
+
+    return this.buildOffline(op, source, sequenceNumber);
+  }
+
   // ─── Payouts ────────────────────────────────────────────────────
 
   /**
@@ -171,6 +282,20 @@ export class SoroSaveClient {
     );
 
     return this.buildTransaction(op, source);
+  }
+
+  distributePayoutBuildOffline(
+    groupId: number,
+    source: string,
+    sequenceNumber: AccountSequence
+  ): string {
+    const contract = new StellarSdk.Contract(this.contractId);
+    const op = contract.call(
+      "distribute_payout",
+      StellarSdk.nativeToScVal(groupId, { type: "u64" })
+    );
+
+    return this.buildOffline(op, source, sequenceNumber);
   }
 
   // ─── Admin ──────────────────────────────────────────────────────
@@ -193,6 +318,22 @@ export class SoroSaveClient {
     return this.buildTransaction(op, source);
   }
 
+  pauseGroupBuildOffline(
+    admin: string,
+    groupId: number,
+    source: string,
+    sequenceNumber: AccountSequence
+  ): string {
+    const contract = new StellarSdk.Contract(this.contractId);
+    const op = contract.call(
+      "pause_group",
+      new StellarSdk.Address(admin).toScVal(),
+      StellarSdk.nativeToScVal(groupId, { type: "u64" })
+    );
+
+    return this.buildOffline(op, source, sequenceNumber);
+  }
+
   /**
    * Resume a paused group.
    */
@@ -209,6 +350,22 @@ export class SoroSaveClient {
     );
 
     return this.buildTransaction(op, source);
+  }
+
+  resumeGroupBuildOffline(
+    admin: string,
+    groupId: number,
+    source: string,
+    sequenceNumber: AccountSequence
+  ): string {
+    const contract = new StellarSdk.Contract(this.contractId);
+    const op = contract.call(
+      "resume_group",
+      new StellarSdk.Address(admin).toScVal(),
+      StellarSdk.nativeToScVal(groupId, { type: "u64" })
+    );
+
+    return this.buildOffline(op, source, sequenceNumber);
   }
 
   /**
@@ -229,6 +386,24 @@ export class SoroSaveClient {
     );
 
     return this.buildTransaction(op, source);
+  }
+
+  raiseDisputeBuildOffline(
+    member: string,
+    groupId: number,
+    reason: string,
+    source: string,
+    sequenceNumber: AccountSequence
+  ): string {
+    const contract = new StellarSdk.Contract(this.contractId);
+    const op = contract.call(
+      "raise_dispute",
+      new StellarSdk.Address(member).toScVal(),
+      StellarSdk.nativeToScVal(groupId, { type: "u64" }),
+      StellarSdk.nativeToScVal(reason, { type: "string" })
+    );
+
+    return this.buildOffline(op, source, sequenceNumber);
   }
 
   // ─── Read-Only Queries ──────────────────────────────────────────
@@ -306,6 +481,42 @@ export class SoroSaveClient {
       tx,
       simulated
     ).build();
+  }
+
+  private buildOfflineTransaction(
+    operation: StellarSdk.xdr.Operation,
+    sourcePublicKey: string,
+    sequenceNumber: AccountSequence
+  ): StellarSdk.Transaction {
+    const sequence = this.normalizeSequence(sequenceNumber);
+    const account = new StellarSdk.Account(sourcePublicKey, sequence);
+
+    return new StellarSdk.TransactionBuilder(account, {
+      fee: "100",
+      networkPassphrase: this.networkPassphrase,
+    })
+      .addOperation(operation)
+      .setTimeout(30)
+      .build();
+  }
+
+  private normalizeSequence(sequenceNumber: AccountSequence): string {
+    if (typeof sequenceNumber === "bigint") {
+      return sequenceNumber.toString();
+    }
+
+    if (typeof sequenceNumber === "number") {
+      if (!Number.isFinite(sequenceNumber) || sequenceNumber < 0) {
+        throw new Error("Sequence number must be a positive finite number.");
+      }
+      return Math.floor(sequenceNumber).toString();
+    }
+
+    if (!/^\d+$/.test(sequenceNumber)) {
+      throw new Error("Sequence number must be a numeric string.");
+    }
+
+    return sequenceNumber;
   }
 
   private async simulateTransaction(
