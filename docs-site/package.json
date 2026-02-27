@@ -1,0 +1,9 @@
+{
+  "name": "sorosave-docs-site",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --dir ../docs docs:dev",
+    "build": "pnpm --dir ../docs docs:build",
+    "preview": "pnpm --dir ../docs docs:preview"
+  }
+}

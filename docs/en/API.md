@@ -45,7 +45,7 @@ Manages savings groups.
 
 ### Methods
 
-#### create(options: CreateGroupOptions): Promise<Group>
+#### `create(options: CreateGroupOptions): Promise<Group>`
 
 Creates a new savings group.
 
@@ -77,7 +77,7 @@ const group = await sdk.groups.create({
 });
 ```
 
-#### join(groupId: string): Promise<void>
+#### `join(groupId: string): Promise<void>`
 
 Joins an existing group.
 
@@ -90,7 +90,7 @@ Joins an existing group.
 await sdk.groups.join("group-123");
 ```
 
-#### contribute(groupId: string, amount: number): Promise<Transaction>
+#### `contribute(groupId: string, amount: number): Promise<Transaction>`
 
 Makes a contribution to a group.
 
@@ -107,7 +107,7 @@ const tx = await sdk.groups.contribute("group-123", 100);
 console.log('Transaction:', tx.hash);
 ```
 
-#### get(groupId: string): Promise<Group>
+#### `get(groupId: string): Promise<Group>`
 
 Gets detailed information about a group.
 
@@ -123,7 +123,7 @@ const group = await sdk.groups.get("group-123");
 console.log(group.name, group.totalSaved);
 ```
 
-#### list(options?: ListOptions): Promise<Group[]>
+#### `list(options?: ListOptions): Promise<Group[]>`
 
 Lists available groups.
 
@@ -146,7 +146,7 @@ const groups = await sdk.groups.list({
 });
 ```
 
-#### leave(groupId: string): Promise<void>
+#### `leave(groupId: string): Promise<void>`
 
 Leaves a group.
 
@@ -165,7 +165,7 @@ Manages user account operations.
 
 ### Methods
 
-#### getAccount(): Promise<Account>
+#### `getAccount(): Promise<Account>`
 
 Gets the current user's account information.
 
@@ -178,7 +178,7 @@ const account = await sdk.user.getAccount();
 console.log(account.address, account.balance);
 ```
 
-#### getGroups(): Promise<Group[]>
+#### `getGroups(): Promise<Group[]>`
 
 Gets all groups the user is a member of.
 
@@ -191,7 +191,7 @@ const myGroups = await sdk.user.getGroups();
 myGroups.forEach(g => console.log(g.name));
 ```
 
-#### getContributions(options?: ContributionOptions): Promise<Contribution[]>
+#### `getContributions(options?: ContributionOptions): Promise<Contribution[]>`
 
 Gets the user's contribution history.
 
