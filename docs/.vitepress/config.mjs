@@ -2,7 +2,11 @@ export default {
   title: 'SoroSave SDK',
   description: 'TypeScript SDK for SoroSave - Decentralized Group Savings Protocol on Soroban',
   base: '/sdk/',
+  ignoreDeadLinks: true,
   themeConfig: {
+    search: {
+      provider: 'local',
+    },
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Guide', link: '/guide/getting-started' },
