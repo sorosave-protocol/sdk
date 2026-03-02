@@ -382,3 +382,42 @@ export class SoroSaveClient {
     return statusMap[statusStr] || GroupStatus.Forming;
   }
 }
+
+  // ─── Offline Transaction Building ─────────────────────────────────────────
+
+  /**
+   * Build a transaction offline without network access
+   * Returns unsigned XDR that can be signed and submitted later
+   */
+  async buildOfflineTransaction(
+    operation: StellarSdk.xdr.Operation,
+    sourcePublicKey: string,
+    sequenceNumber: string
+  ): Promise<string> {
+    const sourceAccount = new StellarSdk.Account(sourcePublicKey, sequenceNumber);
+    
+    const tx = new StellarSdk.TransactionBuilder(sourceAccount, {
+      fee: "100",
+      networkPassphrase: this.networkPassphrase,
+    })
+      .addOperation(operation)
+      .setTimeout(0)
+      .build();
+
+    return tx.toXDR();
+  }
+
+  /**
+   * Submit a pre-signed transaction
+   */
+  async submitSignedTransaction(signedXdr: string): Promise<StellarSdk.xdr.Transaction> {
+    const tx = StellarSdk.Transaction.fromXDR(signedXdr, this.networkPassphrase);
+    const preparedTx = await this.server.prepareTransaction(tx);
+    const result = await this.server.sendTransaction(preparedTx);
+    
+    if (result.status === "ERROR") {
+      throw new Error(`Transaction failed: ${result.error}`);
+    }
+    
+    return tx;
+  }
