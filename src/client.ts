@@ -5,9 +5,13 @@ import {
   RoundInfo,
   CreateGroupParams,
   GroupStatus,
+  SoroSaveEventType,
+  SoroSaveEvent,
+  EventCallback,
 } from "./types";
 import { WalletAdapter } from "./wallets";
 import { BatchBuilder } from "./batch";
+import { SoroSaveEventListener } from "./events";
 
 /**
  * SoroSave SDK Client
@@ -20,12 +24,15 @@ export class SoroSaveClient {
   private contractId: string;
   private networkPassphrase: string;
   private walletAdapter?: WalletAdapter;
+  private eventListener?: SoroSaveEventListener;
+  private config: SoroSaveConfig;
 
   constructor(config: SoroSaveConfig, walletAdapter?: WalletAdapter) {
     this.server = new StellarSdk.rpc.Server(config.rpcUrl);
     this.contractId = config.contractId;
     this.networkPassphrase = config.networkPassphrase;
     this.walletAdapter = walletAdapter;
+    this.config = config;
   }
 
   setWalletAdapter(walletAdapter: WalletAdapter): this {
@@ -274,6 +281,57 @@ export class SoroSaveClient {
 
     const result = await this.simulateTransaction(op);
     return StellarSdk.scValToNative(result) as number[];
+  }
+
+  // ─── Events ───────────────────────────────────────────────────
+
+  /**
+   * Subscribe to contract events.
+   * Returns a subscription ID for use with `unsubscribeEvent()`.
+   *
+   * Automatically starts the internal event listener on first subscription.
+   */
+  onEvent(
+    eventType: SoroSaveEventType | "*",
+    callback: EventCallback
+  ): string {
+    if (!this.eventListener) {
+      this.eventListener = new SoroSaveEventListener({
+        rpcUrl: this.config.rpcUrl,
+        contractId: this.contractId,
+        networkPassphrase: this.networkPassphrase,
+      });
+      this.eventListener.start();
+    }
+    return this.eventListener.onEvent(eventType, callback);
+  }
+
+  /**
+   * Remove an event subscription by ID.
+   * Stops the listener when no subscriptions remain.
+   */
+  unsubscribeEvent(subscriptionId: string): boolean {
+    if (!this.eventListener) return false;
+    const removed = this.eventListener.unsubscribe(subscriptionId);
+    if (this.eventListener.subscriptionCount === 0) {
+      this.eventListener.stop();
+    }
+    return removed;
+  }
+
+  /**
+   * Access the underlying event listener for advanced configuration
+   * (e.g. setting cursor, adjusting poll interval).
+   */
+  getEventListener(): SoroSaveEventListener {
+    if (!this.eventListener) {
+      this.eventListener = new SoroSaveEventListener({
+        rpcUrl: this.config.rpcUrl,
+        contractId: this.contractId,
+        networkPassphrase: this.networkPassphrase,
+      });
+    }
+    return this.eventListener;
   }
 
   // ─── Internal Helpers ───────────────────────────────────────────
