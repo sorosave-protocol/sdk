@@ -1,63 +1,26 @@
 {
-  "name": "@sorosave/sdk",
-  "version": "0.1.0",
-  "description": "TypeScript SDK for SoroSave — Decentralized Group Savings Protocol on Soroban",
+  "name": "@sorosave/webhook",
+  "version": "1.0.0",
+  "description": "Webhook notification service for SoroSave contract events",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./react": {
-      "types": "./dist/react/index.d.ts",
-      "default": "./dist/react/index.js"
-    }
-  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "eslint src/"
-  },
-  "bin": {
-    "sorosave": "./dist/cli.js"
-  },
-  "dependencies": {
-    "@stellar/stellar-sdk": "^13.0.0",
-    "commander": "^11.0.0"
-  },
-  "peerDependencies": {
-    "react": ">=17.0.0",
-    "@stellar/stellar-sdk": "^13.0.0"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    }
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.0.0",
-    "react": "^18.0.0",
-    "typescript": "^5.5.0",
-    "vitest": "^2.0.0"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/big14way/sorosave.git",
-    "directory": "sdk"
+    "build": "tsc --project tsconfig.json",
+    "test": "jest --testPathPattern=webhook",
+    "lint": "eslint . --ext .ts"
   },
   "keywords": [
-    "soroban",
+    "sorosave",
+    "webhook",
     "stellar",
-    "defi",
-    "savings",
-    "ajo",
-    "susu",
-    "chit-fund",
-    "react",
-    "hooks"
-  ]
+    "soroban",
+    "notifications"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
