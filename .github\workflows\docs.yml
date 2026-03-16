@@ -1,0 +1,158 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'docs-site/**'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'docs-site/**'
+      - '.github/workflows/docs.yml'
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
+jobs:
+  # ─── Build Job ─────────────────────────────────────────────────────────────
+  build:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git-based last-modified timestamps
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: docs-site/package-lock.json
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Install docs dependencies
+        working-directory: docs-site
+        run: npm ci
+
+      - name: Copy docs content into docs-site
+        run: |
+          # Copy docs from the /docs directory into docs-site/docs
+          # preserving the directory structure
+          echo "📁 Syncing content from /docs to /docs-site/docs..."
+
+          # Guide docs
+          mkdir -p docs-site/docs/guide
+          for f in docs/guide/*.md; do
+            [ -f "$f" ] && cp "$f" "docs-site/docs/guide/" && echo "  ✅ Copied $f"
+          done
+
+          # API docs
+          mkdir -p docs-site/docs/api
+          for f in docs/api/*.md; do
+            [ -f "$f" ] && cp "$f" "docs-site/docs/api/" && echo "  ✅ Copied $f"
+          done
+
+          # Tutorial docs
+          mkdir -p docs-site/docs/tutorial
+          for f in docs/tutorial/*.md; do
+            [ -f "$f" ] && cp "$f" "docs-site/docs/tutorial/" && echo "  ✅ Copied $f"
+          done
+
+          # Root docs (README, API, index)
+          for f in docs/README.md docs/API.md docs/index.md; do
+            [ -f "$f" ] && cp "$f" "docs-site/docs/" && echo "  ✅ Copied $f"
+          done
+
+          echo "✨ Content sync complete!"
+
+      - name: Build Docusaurus site
+        working-directory: docs-site
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Upload artifact for Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/build
+
+  # ─── Deploy Job (only on push to main) ─────────────────────────────────────
+  deploy:
+    name: Deploy to GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    # Only deploy on push to main, not on pull requests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ─── Link Check Job ─────────────────────────────────────────────────────────
+  link-check:
+    name: Check Documentation Links
+    runs-on: ubuntu-latest
+    needs: build
+    # Only run on pull requests to catch broken links before merge
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: docs-site/package-lock.json
+
+      - name: Install docs dependencies
+        working-directory: docs-site
+        run: npm ci
+
+      - name: Build for link checking
+        working-directory: docs-site
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Check links
+        working-directory: docs-site
+        run: |
+          npm run serve -- --port 3000 &
+          sleep 5
+          npx broken-link-checker http://localhost:3000 \
+            --recursive \
+            --ordered \
+            --filter-level 3 \
+            --exclude "github.com" \
+            --exclude "npmjs.com" \
+            --exclude "stellar.org" \
+            || echo "⚠️  Some links may be broken — review above output"
