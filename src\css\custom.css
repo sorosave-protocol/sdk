@@ -1,0 +1,169 @@
+/**
+ * SoroSave Documentation - Custom CSS
+ * Overrides Docusaurus default theme with SoroSave brand colors
+ */
+
+/* Infima CSS variables - SoroSave brand */
+:root {
+  --ifm-color-primary: #2e8555;
+  --ifm-color-primary-dark: #29784c;
+  --ifm-color-primary-darker: #277148;
+  --ifm-color-primary-darkest: #205d3b;
+  --ifm-color-primary-light: #33925d;
+  --ifm-color-primary-lighter: #359962;
+  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  /* Custom SoroSave variables */
+  --sorosave-gradient-start: #0d1117;
+  --sorosave-gradient-end: #161b22;
+  --sorosave-accent: #2e8555;
+  --sorosave-hero-text: #ffffff;
+}
+
+/* Dark mode overrides */
+[data-theme='dark'] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* Hero section */
+.hero--primary {
+  background: linear-gradient(
+    135deg,
+    var(--sorosave-gradient-start) 0%,
+    #0f3460 50%,
+    var(--sorosave-gradient-end) 100%
+  );
+  color: var(--sorosave-hero-text);
+}
+
+.hero__title {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.hero__subtitle {
+  font-size: 1.25rem;
+  opacity: 0.85;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+/* Feature cards */
+.features {
+  display: flex;
+  align-items: center;
+  padding: 2rem 0;
+  width: 100%;
+}
+
+.featureIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.featureSvg {
+  height: 200px;
+  width: 200px;
+}
+
+/* Navbar enhancements */
+.navbar {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+.navbar__brand {
+  font-weight: 700;
+}
+
+/* Code block enhancements */
+.prism-code {
+  font-size: 0.9rem;
+}
+
+/* Announcement bar */
+div[class*="announcementBar"] {
+  font-size: 0.9rem;
+}
+
+/* API reference tables */
+.markdown table {
+  display: table;
+  width: 100%;
+}
+
+.markdown table th {
+  background-color: var(--ifm-color-primary);
+  color: white;
+}
+
+[data-theme='dark'] .markdown table th {
+  background-color: var(--ifm-color-primary-dark);
+}
+
+/* Badge styles */
+.badge--primary {
+  background-color: var(--ifm-color-primary);
+}
+
+/* Card grid layout for feature pages */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.card {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] .card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Admonition custom styles */
+.alert--info {
+  border-left-color: var(--ifm-color-primary);
+}
+
+/* Search box */
+.navbar__search-input {
+  border-radius: 20px;
+}
+
+/* Footer */
+.footer {
+  background-color: var(--sorosave-gradient-start);
+}
+
+.footer__title {
+  color: var(--ifm-color-primary-light);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero__title {
+    font-size: 2rem;
+  }
+
+  .hero__subtitle {
+    font-size: 1rem;
+  }
+}
