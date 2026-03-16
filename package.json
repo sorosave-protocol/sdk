@@ -1,63 +1,45 @@
 {
-  "name": "@sorosave/sdk",
-  "version": "0.1.0",
-  "description": "TypeScript SDK for SoroSave — Decentralized Group Savings Protocol on Soroban",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./react": {
-      "types": "./dist/react/index.d.ts",
-      "default": "./dist/react/index.js"
-    }
-  },
+  "name": "sorosave-docs",
+  "version": "0.0.1",
+  "private": true,
   "scripts": {
-    "build": "tsc",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "eslint src/"
-  },
-  "bin": {
-    "sorosave": "./dist/cli.js"
+    "docusaurus": "docusaurus",
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "swizzle": "docusaurus swizzle",
+    "deploy": "docusaurus deploy",
+    "clear": "docusaurus clear",
+    "serve": "docusaurus serve",
+    "write-translations": "docusaurus write-translations",
+    "write-heading-ids": "docusaurus write-heading-ids"
   },
   "dependencies": {
-    "@stellar/stellar-sdk": "^13.0.0",
-    "commander": "^11.0.0"
-  },
-  "peerDependencies": {
-    "react": ">=17.0.0",
-    "@stellar/stellar-sdk": "^13.0.0"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    }
+    "@docusaurus/core": "3.5.2",
+    "@docusaurus/preset-classic": "3.5.2",
+    "@easyops-cn/docusaurus-search-local": "^0.44.4",
+    "@mdx-js/react": "^3.0.0",
+    "clsx": "^2.0.0",
+    "prism-react-renderer": "^2.3.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.0.0",
-    "react": "^18.0.0",
-    "typescript": "^5.5.0",
-    "vitest": "^2.0.0"
+    "@docusaurus/module-type-aliases": "3.5.2",
+    "@docusaurus/types": "3.5.2"
   },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/big14way/sorosave.git",
-    "directory": "sdk"
+  "engines": {
+    "node": ">=18.0"
   },
-  "keywords": [
-    "soroban",
-    "stellar",
-    "defi",
-    "savings",
-    "ajo",
-    "susu",
-    "chit-fund",
-    "react",
-    "hooks"
-  ]
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 3 chrome version",
+      "last 3 firefox version",
+      "last 5 safari version"
+    ]
+  }
 }
