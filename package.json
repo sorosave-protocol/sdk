@@ -17,6 +17,8 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
+    "test:unit": "vitest run tests/batch.test.ts",
+    "test:integration": "vitest run tests/integration.test.ts",
     "test:watch": "vitest",
     "lint": "eslint src/"
   },
