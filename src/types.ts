@@ -1,43 +1,32 @@
-export enum GroupStatus {
-  Forming = "Forming",
-  Active = "Active",
-  Completed = "Completed",
-  Disputed = "Disputed",
-  Paused = "Paused",
+// Event types for SoroSave protocol
+export type EventType = 'contribution' | 'payout' | 'group_created' | 'member_joined';
+
+export interface BaseEvent {
+  id: string;
+  type: EventType;
+  ledger: number;
+  createdAt: Date;
 }
 
-export interface SavingsGroup {
-  id: number;
-  name: string;
-  admin: string;
-  token: string;
-  contributionAmount: bigint;
-  cycleLength: number;
-  maxMembers: number;
-  members: string[];
-  payoutOrder: string[];
-  currentRound: number;
-  totalRounds: number;
-  status: GroupStatus;
-  createdAt: number;
+export interface ContributionEvent extends BaseEvent {
+  type: 'contribution';
+  groupId: number;
+  memberAddress: string;
+  amount: bigint;
+  cycle: number;
 }
 
-export interface RoundInfo {
-  roundNumber: number;
-  recipient: string;
-  contributions: Map<string, boolean>;
-  totalContributed: bigint;
-  isComplete: boolean;
-  deadline: number;
+export interface PayoutEvent extends BaseEvent {
+  type: 'payout';
+  groupId: number;
+  recipientAddress: string;
+  amount: bigint;
+  cycle: number;
 }
 
-export interface Dispute {
-  raisedBy: string;
-  reason: string;
-  raisedAt: number;
-}
-
-export interface CreateGroupParams {
+export interface GroupCreatedEvent extends BaseEvent {
+  type: 'group_created';
+  groupId: number;
   admin: string;
   name: string;
   token: string;
@@ -46,13 +35,14 @@ export interface CreateGroupParams {
   maxMembers: number;
 }
 
-export interface SoroSaveConfig {
-  contractId: string;
-  rpcUrl: string;
-  networkPassphrase: string;
+export interface MemberJoinedEvent extends BaseEvent {
+  type: 'member_joined';
+  groupId: number;
+  memberAddress: string;
 }
 
-export interface TransactionResult<T = void> {
-  result: T;
-  txHash: string;
+export type Event = ContributionEvent | PayoutEvent | GroupCreatedEvent | MemberJoinedEvent;
+
+export interface EventSubscription {
+  unsubscribe: () => void;
 }
