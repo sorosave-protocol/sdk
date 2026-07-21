@@ -1,384 +1,100 @@
-import * as StellarSdk from "@stellar/stellar-sdk";
-import {
-  SoroSaveConfig,
-  SavingsGroup,
-  RoundInfo,
-  CreateGroupParams,
-  GroupStatus,
-} from "./types";
-import { WalletAdapter } from "./wallets";
-import { BatchBuilder } from "./batch";
+import { SorobanRpc, TransactionBuilder, xdr, Address, nativeToScVal, scValToNative } from "@stellar/stellar-sdk";
+import { ClientOptions, Group, CreateGroupOptions, OfflineTransactionOptions, OfflineTransaction, SignedTransaction, TransactionResult } from "./types";
 
-/**
- * SoroSave SDK Client
- *
- * Wraps the SoroSave Soroban smart contract with typed TypeScript methods.
- * Handles transaction building, simulation, and submission.
- */
 export class SoroSaveClient {
-  private server: StellarSdk.rpc.Server;
+  private rpcUrl: string;
   private contractId: string;
   private networkPassphrase: string;
-  private walletAdapter?: WalletAdapter;
+  private server: SorobanRpc.Server;
 
-  constructor(config: SoroSaveConfig, walletAdapter?: WalletAdapter) {
-    this.server = new StellarSdk.rpc.Server(config.rpcUrl);
-    this.contractId = config.contractId;
-    this.networkPassphrase = config.networkPassphrase;
-    this.walletAdapter = walletAdapter;
+  constructor(options: ClientOptions) {
+    this.rpcUrl = options.rpcUrl;
+    this.contractId = options.contractId;
+    this.networkPassphrase = options.networkPassphrase;
+    this.server = new SorobanRpc.Server(this.rpcUrl, { allowHttp: this.rpcUrl.startsWith("http://") });
   }
 
-  setWalletAdapter(walletAdapter: WalletAdapter): this {
-    this.walletAdapter = walletAdapter;
-    return this;
-  }
+  // Existing methods...
 
-  async buildAndSignTransaction(
-    operation: StellarSdk.xdr.Operation,
-    sourcePublicKey: string
-  ): Promise<StellarSdk.Transaction> {
-    const tx = await this.buildTransaction(operation, sourcePublicKey);
+  async buildOfflineTransfer(
+    destination: string,
+    amount: bigint,
+    options: OfflineTransactionOptions
+  ): Promise<OfflineTransaction> {
+    const sourceAccount = await this.getAccount(options.sourcePublicKey);
+    const sequenceNumber = options.sequenceNumber || sourceAccount.sequenceNumber();
 
-    if (!this.walletAdapter) {
-      throw new Error("Wallet adapter is not configured.");
-    }
-
-    return this.walletAdapter.signTransaction(tx, this.networkPassphrase);
-  }
-
-  createBatchBuilder(): BatchBuilder {
-    return new BatchBuilder();
-  }
-
-  async buildBatchTransaction(
-    sourcePublicKey: string,
-    batch: BatchBuilder
-  ): Promise<StellarSdk.Transaction> {
-    const account = await this.server.getAccount(sourcePublicKey);
-    return batch.buildTransaction(account, this.networkPassphrase);
-  }
-
-  // ─── Group Lifecycle ────────────────────────────────────────────
-
-  /**
-   * Create a new savings group.
-   */
-  async createGroup(
-    params: CreateGroupParams,
-    source: string
-  ): Promise<StellarSdk.Transaction> {
-    const contract = new StellarSdk.Contract(this.contractId);
-    const op = contract.call(
-      "create_group",
-      new StellarSdk.Address(params.admin).toScVal(),
-      StellarSdk.nativeToScVal(params.name, { type: "string" }),
-      new StellarSdk.Address(params.token).toScVal(),
-      StellarSdk.nativeToScVal(params.contributionAmount, { type: "i128" }),
-      StellarSdk.nativeToScVal(params.cycleLength, { type: "u64" }),
-      StellarSdk.nativeToScVal(params.maxMembers, { type: "u32" })
-    );
-
-    return this.buildTransaction(op, source);
-  }
-
-  /**
-   * Join an existing group.
-   */
-  async joinGroup(
-    member: string,
-    groupId: number,
-    source: string
-  ): Promise<StellarSdk.Transaction> {
-    const contract = new StellarSdk.Contract(this.contractId);
-    const op = contract.call(
-      "join_group",
-      new StellarSdk.Address(member).toScVal(),
-      StellarSdk.nativeToScVal(groupId, { type: "u64" })
-    );
-
-    return this.buildTransaction(op, source);
-  }
-
-  /**
-   * Leave a group (only while forming).
-   */
-  async leaveGroup(
-    member: string,
-    groupId: number,
-    source: string
-  ): Promise<StellarSdk.Transaction> {
-    const contract = new StellarSdk.Contract(this.contractId);
-    const op = contract.call(
-      "leave_group",
-      new StellarSdk.Address(member).toScVal(),
-      StellarSdk.nativeToScVal(groupId, { type: "u64" })
-    );
-
-    return this.buildTransaction(op, source);
-  }
-
-  /**
-   * Start the group (admin only).
-   */
-  async startGroup(
-    admin: string,
-    groupId: number,
-    source: string
-  ): Promise<StellarSdk.Transaction> {
-    const contract = new StellarSdk.Contract(this.contractId);
-    const op = contract.call(
-      "start_group",
-      new StellarSdk.Address(admin).toScVal(),
-      StellarSdk.nativeToScVal(groupId, { type: "u64" })
-    );
-
-    return this.buildTransaction(op, source);
-  }
-
-  // ─── Contributions ──────────────────────────────────────────────
-
-  /**
-   * Contribute to the current round.
-   */
-  async contribute(
-    member: string,
-    groupId: number,
-    source: string
-  ): Promise<StellarSdk.Transaction> {
-    const contract = new StellarSdk.Contract(this.contractId);
-    const op = contract.call(
-      "contribute",
-      new StellarSdk.Address(member).toScVal(),
-      StellarSdk.nativeToScVal(groupId, { type: "u64" })
-    );
-
-    return this.buildTransaction(op, source);
-  }
-
-  // ─── Payouts ────────────────────────────────────────────────────
-
-  /**
-   * Distribute the pot to the current round's recipient.
-   */
-  async distributePayout(
-    groupId: number,
-    source: string
-  ): Promise<StellarSdk.Transaction> {
-    const contract = new StellarSdk.Contract(this.contractId);
-    const op = contract.call(
-      "distribute_payout",
-      StellarSdk.nativeToScVal(groupId, { type: "u64" })
-    );
-
-    return this.buildTransaction(op, source);
-  }
-
-  // ─── Admin ──────────────────────────────────────────────────────
-
-  /**
-   * Pause a group.
-   */
-  async pauseGroup(
-    admin: string,
-    groupId: number,
-    source: string
-  ): Promise<StellarSdk.Transaction> {
-    const contract = new StellarSdk.Contract(this.contractId);
-    const op = contract.call(
-      "pause_group",
-      new StellarSdk.Address(admin).toScVal(),
-      StellarSdk.nativeToScVal(groupId, { type: "u64" })
-    );
-
-    return this.buildTransaction(op, source);
-  }
-
-  /**
-   * Resume a paused group.
-   */
-  async resumeGroup(
-    admin: string,
-    groupId: number,
-    source: string
-  ): Promise<StellarSdk.Transaction> {
-    const contract = new StellarSdk.Contract(this.contractId);
-    const op = contract.call(
-      "resume_group",
-      new StellarSdk.Address(admin).toScVal(),
-      StellarSdk.nativeToScVal(groupId, { type: "u64" })
-    );
-
-    return this.buildTransaction(op, source);
-  }
-
-  /**
-   * Raise a dispute.
-   */
-  async raiseDispute(
-    member: string,
-    groupId: number,
-    reason: string,
-    source: string
-  ): Promise<StellarSdk.Transaction> {
-    const contract = new StellarSdk.Contract(this.contractId);
-    const op = contract.call(
-      "raise_dispute",
-      new StellarSdk.Address(member).toScVal(),
-      StellarSdk.nativeToScVal(groupId, { type: "u64" }),
-      StellarSdk.nativeToScVal(reason, { type: "string" })
-    );
-
-    return this.buildTransaction(op, source);
-  }
-
-  // ─── Read-Only Queries ──────────────────────────────────────────
-
-  /**
-   * Get group details. Returns parsed SavingsGroup object.
-   */
-  async getGroup(groupId: number): Promise<SavingsGroup> {
-    const contract = new StellarSdk.Contract(this.contractId);
-    const op = contract.call(
-      "get_group",
-      StellarSdk.nativeToScVal(groupId, { type: "u64" })
-    );
-
-    const result = await this.simulateTransaction(op);
-    return this.parseGroup(result);
-  }
-
-  /**
-   * Get round status.
-   */
-  async getRoundStatus(groupId: number, round: number): Promise<RoundInfo> {
-    const contract = new StellarSdk.Contract(this.contractId);
-    const op = contract.call(
-      "get_round_status",
-      StellarSdk.nativeToScVal(groupId, { type: "u64" }),
-      StellarSdk.nativeToScVal(round, { type: "u32" })
-    );
-
-    const result = await this.simulateTransaction(op);
-    return this.parseRound(result);
-  }
-
-  /**
-   * Get all groups for a member.
-   */
-  async getMemberGroups(member: string): Promise<number[]> {
-    const contract = new StellarSdk.Contract(this.contractId);
-    const op = contract.call(
-      "get_member_groups",
-      new StellarSdk.Address(member).toScVal()
-    );
-
-    const result = await this.simulateTransaction(op);
-    return StellarSdk.scValToNative(result) as number[];
-  }
-
-  // ─── Internal Helpers ───────────────────────────────────────────
-
-  private async buildTransaction(
-    operation: StellarSdk.xdr.Operation,
-    sourcePublicKey: string
-  ): Promise<StellarSdk.Transaction> {
-    const account = await this.server.getAccount(sourcePublicKey);
-    const txBuilder = new StellarSdk.TransactionBuilder(account, {
-      fee: "100",
+    const transaction = new TransactionBuilder(sourceAccount, {
+      fee: options.fee || 100,
       networkPassphrase: this.networkPassphrase,
+      timebounds: options.timebounds,
     })
-      .addOperation(operation)
-      .setTimeout(30);
-
-    const tx = txBuilder.build();
-
-    const simulated = await this.server.simulateTransaction(tx);
-
-    if (
-      StellarSdk.rpc.Api.isSimulationError(simulated)
-    ) {
-      throw new Error(
-        `Simulation failed: ${simulated.error}`
-      );
-    }
-
-    return StellarSdk.rpc.assembleTransaction(
-      tx,
-      simulated
-    ).build();
-  }
-
-  private async simulateTransaction(
-    operation: StellarSdk.xdr.Operation
-  ): Promise<StellarSdk.xdr.ScVal> {
-    // Use a dummy source for read-only queries
-    const keypair = StellarSdk.Keypair.random();
-    const account = new StellarSdk.Account(keypair.publicKey(), "0");
-
-    const tx = new StellarSdk.TransactionBuilder(account, {
-      fee: "100",
-      networkPassphrase: this.networkPassphrase,
-    })
-      .addOperation(operation)
+      .addOperation({
+        type: "payment",
+        destination,
+        amount: amount.toString(),
+        asset: "native",
+      })
       .setTimeout(30)
       .build();
 
-    const simulated = await this.server.simulateTransaction(tx);
+    return {
+      xdr: transaction.toXDR(),
+      sequenceNumber,
+    };
+  }
 
-    if (StellarSdk.rpc.Api.isSimulationError(simulated)) {
-      throw new Error(`Simulation failed: ${simulated.error}`);
+  async buildOfflineContractInvoke(
+    method: string,
+    args: xdr.ScVal[],
+    options: OfflineTransactionOptions
+  ): Promise<OfflineTransaction> {
+    const sourceAccount = await this.getAccount(options.sourcePublicKey);
+    const sequenceNumber = options.sequenceNumber || sourceAccount.sequenceNumber();
+
+    const transaction = new TransactionBuilder(sourceAccount, {
+      fee: options.fee || 100,
+      networkPassphrase: this.networkPassphrase,
+      timebounds: options.timebounds,
+    })
+      .addOperation({
+        type: "invokeHostFunction",
+        hostFunction: xdr.HostFunction.hostFunctionTypeInvokeContract({
+          contractId: Address.fromString(this.contractId).toScAddress(),
+          functionName: method,
+          args: args,
+        }),
+      })
+      .setTimeout(30)
+      .build();
+
+    return {
+      xdr: transaction.toXDR(),
+      sequenceNumber,
+    };
+  }
+
+  async submitSignedTransaction(signedXdr: string): Promise<TransactionResult> {
+    const transaction = new SorobanRpc.Transaction(signedXdr);
+    const sendResponse = await this.server.sendTransaction(transaction);
+    if (SorobanRpc.Api.isSendTransactionError(sendResponse)) {
+      throw new Error(`Error sending transaction: ${sendResponse.error}`);
     }
 
-    const successResult = simulated as StellarSdk.rpc.Api.SimulateTransactionSuccessResponse;
-    if (!successResult.result) {
-      throw new Error("No result from simulation");
+    const getResponse = await this.server.getTransaction(sendResponse.hash);
+    if (SorobanRpc.Api.isGetTransactionError(getResponse)) {
+      throw new Error(`Error getting transaction: ${getResponse.error}`);
     }
 
-    return successResult.result.retval;
-  }
-
-  private parseGroup(scVal: StellarSdk.xdr.ScVal): SavingsGroup {
-    const raw = StellarSdk.scValToNative(scVal) as Record<string, unknown>;
     return {
-      id: Number(raw.id),
-      name: String(raw.name),
-      admin: String(raw.admin),
-      token: String(raw.token),
-      contributionAmount: BigInt(raw.contribution_amount as string),
-      cycleLength: Number(raw.cycle_length),
-      maxMembers: Number(raw.max_members),
-      members: raw.members as string[],
-      payoutOrder: raw.payout_order as string[],
-      currentRound: Number(raw.current_round),
-      totalRounds: Number(raw.total_rounds),
-      status: this.parseStatus(raw.status),
-      createdAt: Number(raw.created_at),
+      hash: sendResponse.hash,
+      ledger: getResponse.ledger,
+      result: getResponse,
     };
   }
 
-  private parseRound(scVal: StellarSdk.xdr.ScVal): RoundInfo {
-    const raw = StellarSdk.scValToNative(scVal) as Record<string, unknown>;
-    return {
-      roundNumber: Number(raw.round_number),
-      recipient: String(raw.recipient),
-      contributions: new Map(
-        Object.entries(raw.contributions as Record<string, boolean>)
-      ),
-      totalContributed: BigInt(raw.total_contributed as string),
-      isComplete: Boolean(raw.is_complete),
-      deadline: Number(raw.deadline),
-    };
-  }
-
-  private parseStatus(status: unknown): GroupStatus {
-    const statusStr = String(status);
-    const statusMap: Record<string, GroupStatus> = {
-      Forming: GroupStatus.Forming,
-      Active: GroupStatus.Active,
-      Completed: GroupStatus.Completed,
-      Disputed: GroupStatus.Disputed,
-      Paused: GroupStatus.Paused,
-    };
-    return statusMap[statusStr] || GroupStatus.Forming;
+  private async getAccount(publicKey: string): Promise<SorobanRpc.Api.Account> {
+    const account = await this.server.getAccount(publicKey);
+    return account;
   }
 }
