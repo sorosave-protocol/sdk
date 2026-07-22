@@ -1,58 +1,54 @@
-export enum GroupStatus {
-  Forming = "Forming",
-  Active = "Active",
-  Completed = "Completed",
-  Disputed = "Disputed",
-  Paused = "Paused",
-}
+import { SorobanRpc } from "@stellar/stellar-sdk";
 
-export interface SavingsGroup {
-  id: number;
-  name: string;
-  admin: string;
-  token: string;
-  contributionAmount: bigint;
-  cycleLength: number;
-  maxMembers: number;
-  members: string[];
-  payoutOrder: string[];
-  currentRound: number;
-  totalRounds: number;
-  status: GroupStatus;
-  createdAt: number;
-}
-
-export interface RoundInfo {
-  roundNumber: number;
-  recipient: string;
-  contributions: Map<string, boolean>;
-  totalContributed: bigint;
-  isComplete: boolean;
-  deadline: number;
-}
-
-export interface Dispute {
-  raisedBy: string;
-  reason: string;
-  raisedAt: number;
-}
-
-export interface CreateGroupParams {
-  admin: string;
-  name: string;
-  token: string;
-  contributionAmount: bigint;
-  cycleLength: number;
-  maxMembers: number;
-}
-
-export interface SoroSaveConfig {
-  contractId: string;
+export interface ClientOptions {
   rpcUrl: string;
+  contractId: string;
   networkPassphrase: string;
 }
 
-export interface TransactionResult<T = void> {
-  result: T;
-  txHash: string;
+export interface Group {
+  id: number;
+  admin: string;
+  name: string;
+  token: string;
+  contributionAmount: bigint;
+  cycleLength: number;
+  maxMembers: number;
+  status: "active" | "completed" | "cancelled";
+  members: string[];
+}
+
+export interface CreateGroupOptions {
+  admin: string;
+  name: string;
+  token: string;
+  contributionAmount: bigint;
+  cycleLength: number;
+  maxMembers: number;
+}
+
+export interface OfflineTransactionOptions {
+  sourcePublicKey: string;
+  sequenceNumber?: number;
+  fee?: number;
+  memo?: string;
+  timebounds?: {
+    minTime?: number;
+    maxTime?: number;
+  };
+}
+
+export interface OfflineTransaction {
+  xdr: string;
+  sequenceNumber: number;
+}
+
+export interface SignedTransaction {
+  xdr: string;
+}
+
+export interface TransactionResult {
+  hash: string;
+  ledger: number;
+  result: SorobanRpc.Api.GetTransactionResponse;
 }
