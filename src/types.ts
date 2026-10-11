@@ -46,10 +46,21 @@ export interface CreateGroupParams {
   maxMembers: number;
 }
 
+export type NetworkName = "TESTNET" | "MAINNET" | "FUTURENET" | "STANDALONE";
+
+export interface NetworkConfig {
+  name: string;
+  rpcUrl: string;
+  networkPassphrase: string;
+  horizonUrl?: string;
+  friendbotUrl?: string;
+}
+
 export interface SoroSaveConfig {
   contractId: string;
   rpcUrl: string;
   networkPassphrase: string;
+  network?: NetworkName | NetworkConfig;
 }
 
 export interface TransactionResult<T = void> {
@@ -57,7 +68,7 @@ export interface TransactionResult<T = void> {
   txHash: string;
 }
 
-// ─── Event Types ──────────────────────────────────────────────────
+// ── Event Types ──
 
 export enum SoroSaveEventType {
   Contribution = "contribution",

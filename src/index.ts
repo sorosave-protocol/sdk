@@ -3,6 +3,11 @@ export { SoroSaveEventListener } from "./events";
 export { WalletAdapter, FreighterAdapter, WalletCapabilities } from "./wallets";
 export { BatchBuilder, type BatchOperation, type BatchOperationOptions, type BatchFailureMode } from "./batch";
 export {
+  Networks,
+  getNetworkConfig,
+  createConfigFromNetwork,
+} from "./networks";
+export {
   GroupStatus,
   SoroSaveEventType,
   type SavingsGroup,
@@ -10,6 +15,8 @@ export {
   type Dispute,
   type CreateGroupParams,
   type SoroSaveConfig,
+  type NetworkName,
+  type NetworkConfig,
   type TransactionResult,
   type SoroSaveEvent,
   type ContributionEvent,
