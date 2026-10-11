@@ -1,4 +1,87 @@
+import * as StellarSdk from "@stellar/stellar-sdk";
 import { GroupStatus } from "./types";
+
+export interface AddressValidationResult {
+  isValid: boolean;
+  type?: "account" | "contract" | "muxed" | "unknown";
+  error?: string;
+}
+
+/**
+ * Validate whether a string is a valid Stellar public key (G...) or Soroban contract address (C...).
+ *
+ * @param address The address string to validate
+ * @returns boolean true if valid, false otherwise
+ */
+export function isValidAddress(address: unknown): boolean {
+  return validateAddress(address).isValid;
+}
+
+/**
+ * Detailed validation for a Stellar address or contract identifier.
+ * Validates G... public keys, C... contract addresses, and M... muxed accounts.
+ *
+ * @param address The address string to validate
+ * @returns AddressValidationResult with isValid boolean, detected type, and optional error message
+ */
+export function validateAddress(address: unknown): AddressValidationResult {
+  if (typeof address !== "string" || !address.trim()) {
+    return {
+      isValid: false,
+      type: "unknown",
+      error: "Address must be a non-empty string.",
+    };
+  }
+
+  const trimmed = address.trim();
+
+  // Try parsing with StellarSdk.Address
+  try {
+    if (StellarSdk && StellarSdk.Address) {
+      const parsed = StellarSdk.Address.fromString(trimmed);
+      const str = parsed.toString();
+      const isContract = str.startsWith("C");
+      return {
+        isValid: true,
+        type: isContract ? "contract" : "account",
+      };
+    }
+  } catch {
+    // Falls through to StrKey / regex checks if Address.fromString fails
+  }
+
+  // StrKey check for Ed25519 public key or contract
+  try {
+    if (StellarSdk && StellarSdk.StrKey) {
+      if (StellarSdk.StrKey.isValidEd25519PublicKey && StellarSdk.StrKey.isValidEd25519PublicKey(trimmed)) {
+        return { isValid: true, type: "account" };
+      }
+      if (StellarSdk.StrKey.isValidContract && StellarSdk.StrKey.isValidContract(trimmed)) {
+        return { isValid: true, type: "contract" };
+      }
+      if (StellarSdk.StrKey.isValidMed25519PublicKey && StellarSdk.StrKey.isValidMed25519PublicKey(trimmed)) {
+        return { isValid: true, type: "muxed" };
+      }
+    }
+  } catch {}
+
+  // Regex format validation fallback
+  if (/^G[A-Z2-7]{55}$/.test(trimmed)) {
+    return { isValid: true, type: "account" };
+  }
+  if (/^C[A-Z2-7]{55}$/.test(trimmed)) {
+    return { isValid: true, type: "contract" };
+  }
+  if (/^M[A-Z2-7]{68}$/.test(trimmed)) {
+    return { isValid: true, type: "muxed" };
+  }
+
+  return {
+    isValid: false,
+    type: "unknown",
+    error: `Invalid Stellar address format: "${trimmed}". Expected a G... account address or C... contract identifier.`,
+  };
+}
 
 /**
  * Format a raw token amount to a human-readable string.

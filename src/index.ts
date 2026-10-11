@@ -26,6 +26,9 @@ export {
   shortenAddress,
   calculatePotSize,
   getPayoutRound,
+  isValidAddress,
+  validateAddress,
+  type AddressValidationResult,
 } from "./utils";
 
 // React hooks - available via @sorosave/react subpath

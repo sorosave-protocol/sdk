@@ -12,6 +12,7 @@ import {
 import { WalletAdapter } from "./wallets";
 import { BatchBuilder } from "./batch";
 import { SoroSaveEventListener } from "./events";
+import { isValidAddress } from "./utils";
 
 /**
  * SoroSave SDK Client
@@ -28,6 +29,9 @@ export class SoroSaveClient {
   private config: SoroSaveConfig;
 
   constructor(config: SoroSaveConfig, walletAdapter?: WalletAdapter) {
+    if (!isValidAddress(config.contractId)) {
+      throw new Error(`Invalid contractId: ${config.contractId}`);
+    }
     this.server = new StellarSdk.rpc.Server(config.rpcUrl);
     this.contractId = config.contractId;
     this.networkPassphrase = config.networkPassphrase;
@@ -44,6 +48,9 @@ export class SoroSaveClient {
     operation: StellarSdk.xdr.Operation,
     sourcePublicKey: string
   ): Promise<StellarSdk.Transaction> {
+    if (!isValidAddress(sourcePublicKey)) {
+      throw new Error(`Invalid sourcePublicKey: ${sourcePublicKey}`);
+    }
     const tx = await this.buildTransaction(operation, sourcePublicKey);
 
     if (!this.walletAdapter) {
@@ -61,6 +68,9 @@ export class SoroSaveClient {
     sourcePublicKey: string,
     batch: BatchBuilder
   ): Promise<StellarSdk.Transaction> {
+    if (!isValidAddress(sourcePublicKey)) {
+      throw new Error(`Invalid sourcePublicKey: ${sourcePublicKey}`);
+    }
     const account = await this.server.getAccount(sourcePublicKey);
     return batch.buildTransaction(account, this.networkPassphrase);
   }
@@ -74,6 +84,15 @@ export class SoroSaveClient {
     params: CreateGroupParams,
     source: string
   ): Promise<StellarSdk.Transaction> {
+    if (!isValidAddress(params.admin)) {
+      throw new Error(`Invalid admin address: ${params.admin}`);
+    }
+    if (!isValidAddress(params.token)) {
+      throw new Error(`Invalid token address: ${params.token}`);
+    }
+    if (!isValidAddress(source)) {
+      throw new Error(`Invalid source address: ${source}`);
+    }
     const contract = new StellarSdk.Contract(this.contractId);
     const op = contract.call(
       "create_group",
@@ -96,6 +115,12 @@ export class SoroSaveClient {
     groupId: number,
     source: string
   ): Promise<StellarSdk.Transaction> {
+    if (!isValidAddress(member)) {
+      throw new Error(`Invalid member address: ${member}`);
+    }
+    if (!isValidAddress(source)) {
+      throw new Error(`Invalid source address: ${source}`);
+    }
     const contract = new StellarSdk.Contract(this.contractId);
     const op = contract.call(
       "join_group",
@@ -114,6 +139,12 @@ export class SoroSaveClient {
     groupId: number,
     source: string
   ): Promise<StellarSdk.Transaction> {
+    if (!isValidAddress(member)) {
+      throw new Error(`Invalid member address: ${member}`);
+    }
+    if (!isValidAddress(source)) {
+      throw new Error(`Invalid source address: ${source}`);
+    }
     const contract = new StellarSdk.Contract(this.contractId);
     const op = contract.call(
       "leave_group",
@@ -132,6 +163,12 @@ export class SoroSaveClient {
     groupId: number,
     source: string
   ): Promise<StellarSdk.Transaction> {
+    if (!isValidAddress(admin)) {
+      throw new Error(`Invalid admin address: ${admin}`);
+    }
+    if (!isValidAddress(source)) {
+      throw new Error(`Invalid source address: ${source}`);
+    }
     const contract = new StellarSdk.Contract(this.contractId);
     const op = contract.call(
       "start_group",
@@ -152,6 +189,12 @@ export class SoroSaveClient {
     groupId: number,
     source: string
   ): Promise<StellarSdk.Transaction> {
+    if (!isValidAddress(member)) {
+      throw new Error(`Invalid member address: ${member}`);
+    }
+    if (!isValidAddress(source)) {
+      throw new Error(`Invalid source address: ${source}`);
+    }
     const contract = new StellarSdk.Contract(this.contractId);
     const op = contract.call(
       "contribute",
@@ -171,6 +214,9 @@ export class SoroSaveClient {
     groupId: number,
     source: string
   ): Promise<StellarSdk.Transaction> {
+    if (!isValidAddress(source)) {
+      throw new Error(`Invalid source address: ${source}`);
+    }
     const contract = new StellarSdk.Contract(this.contractId);
     const op = contract.call(
       "distribute_payout",
@@ -190,6 +236,12 @@ export class SoroSaveClient {
     groupId: number,
     source: string
   ): Promise<StellarSdk.Transaction> {
+    if (!isValidAddress(admin)) {
+      throw new Error(`Invalid admin address: ${admin}`);
+    }
+    if (!isValidAddress(source)) {
+      throw new Error(`Invalid source address: ${source}`);
+    }
     const contract = new StellarSdk.Contract(this.contractId);
     const op = contract.call(
       "pause_group",
@@ -208,6 +260,12 @@ export class SoroSaveClient {
     groupId: number,
     source: string
   ): Promise<StellarSdk.Transaction> {
+    if (!isValidAddress(admin)) {
+      throw new Error(`Invalid admin address: ${admin}`);
+    }
+    if (!isValidAddress(source)) {
+      throw new Error(`Invalid source address: ${source}`);
+    }
     const contract = new StellarSdk.Contract(this.contractId);
     const op = contract.call(
       "resume_group",
@@ -227,6 +285,12 @@ export class SoroSaveClient {
     reason: string,
     source: string
   ): Promise<StellarSdk.Transaction> {
+    if (!isValidAddress(member)) {
+      throw new Error(`Invalid member address: ${member}`);
+    }
+    if (!isValidAddress(source)) {
+      throw new Error(`Invalid source address: ${source}`);
+    }
     const contract = new StellarSdk.Contract(this.contractId);
     const op = contract.call(
       "raise_dispute",
@@ -273,6 +337,9 @@ export class SoroSaveClient {
    * Get all groups for a member.
    */
   async getMemberGroups(member: string): Promise<number[]> {
+    if (!isValidAddress(member)) {
+      throw new Error(`Invalid member address: ${member}`);
+    }
     const contract = new StellarSdk.Contract(this.contractId);
     const op = contract.call(
       "get_member_groups",
@@ -429,7 +496,6 @@ export class SoroSaveClient {
   }
 
   private parseStatus(status: unknown): GroupStatus {
-    const statusStr = String(status);
     const statusMap: Record<string, GroupStatus> = {
       Forming: GroupStatus.Forming,
       Active: GroupStatus.Active,
