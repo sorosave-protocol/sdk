@@ -24,3 +24,44 @@ jobs:
         run: pnpm install
       - name: Build SDK
         run: pnpm build
+      - name: Unit tests
+        run: pnpm test
+
+  integration:
+    name: Integration (local Soroban)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Install Stellar CLI
+        uses: stellar/stellar-cli@v23.0.0
+      - name: Start local Soroban node
+        run: |
+          stellar container start local
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8000/friendbot > /dev/null 2>&1 || curl -s http://localhost:8000/ > /dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          sleep 20
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run integration tests
+        env:
+          LOCAL_SOROBAN_RPC_URL: http://localhost:8000/rpc
+          LOCAL_SOROBAN_NETWORK_PASSPHRASE: "Standalone Network ; February 2017"
+          SOROSAVE_WASM_PATH: ${{ github.workspace }}/../contracts/target/wasm32v1-none/release/sorosave.wasm
+        run: |
+          if [ ! -f "$SOROSAVE_WASM_PATH" ] && [ -z "$LOCAL_SOROBAN_CONTRACT_ID" ]; then
+            echo "No contract wasm available; integration suite will be skipped."
+          fi
+          pnpm exec vitest run tests/local-integration.test.ts
