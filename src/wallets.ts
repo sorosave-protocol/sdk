@@ -21,18 +21,39 @@ export interface WalletAdapter {
   ): Promise<string>;
 }
 
+type FreighterAddressPayload = string | { address?: string; error?: unknown };
+type FreighterSignPayload = string | { signedTxXdr?: string; signedXdr?: string };
+
 type GlobalRuntime = {
   freighterApi?: {
     isConnected: () => Promise<boolean>;
-    getAddress: () => Promise<string>;
+    getAddress: () => Promise<FreighterAddressPayload>;
     signTransaction?: (args: {
       xdr: string;
       network: string;
-    }) => Promise<string | { signedTxXdr?: string; signedXdr?: string }>;
+      networkPassphrase: string;
+    }) => Promise<FreighterSignPayload>;
   };
 };
 
-function extractSignedXdr(payload: string | { signedTxXdr?: string; signedXdr?: string }): string {
+function extractAddress(payload: FreighterAddressPayload): string {
+  if (typeof payload === "string" && payload.length > 0) {
+    return payload;
+  }
+
+  if (payload && typeof payload === "object") {
+    if (payload.error) {
+      throw new Error("Freighter API failed to return an address.");
+    }
+    if (typeof payload.address === "string" && payload.address.length > 0) {
+      return payload.address;
+    }
+  }
+
+  throw new Error("Freighter API returned unexpected address payload.");
+}
+
+function extractSignedXdr(payload: FreighterSignPayload): string {
   if (typeof payload === "string") {
     return payload;
   }
@@ -79,7 +100,7 @@ export class FreighterAdapter implements WalletAdapter {
       throw new Error("Freighter API is unavailable in this runtime.");
     }
 
-    return api.getAddress();
+    return extractAddress(await api.getAddress());
   }
 
   async signTransaction(
@@ -98,6 +119,7 @@ export class FreighterAdapter implements WalletAdapter {
     const response = await api.signTransaction({
       xdr: transaction.toXDR(),
       network: networkPassphrase,
+      networkPassphrase,
     });
 
     const signedXdr = extractSignedXdr(response);
@@ -123,7 +145,7 @@ export class FreighterAdapter implements WalletAdapter {
     return txAny.fromXDR(signedXdr, networkPassphrase);
   }
 
-  async signAuthEntry(authEntry: string): Promise<string> {
+  async signAuthEntry(): Promise<string> {
     throw new Error(
       "FreighterAdapter only supports transaction signing for now."
     );

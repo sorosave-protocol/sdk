@@ -1,6 +1,6 @@
 export { SoroSaveClient } from "./client";
 export { SoroSaveEventListener } from "./events";
-export { WalletAdapter, FreighterAdapter, WalletCapabilities } from "./wallets";
+export { FreighterAdapter, type WalletAdapter, type WalletCapabilities } from "./wallets";
 export { BatchBuilder, type BatchOperation, type BatchOperationOptions, type BatchFailureMode } from "./batch";
 export {
   GroupStatus,
