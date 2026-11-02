@@ -21,6 +21,10 @@ export class BatchBuilder {
     op: StellarSdk.xdr.Operation,
     options: BatchOperationOptions = {}
   ): this {
+    if (options.order !== undefined && !Number.isFinite(options.order)) {
+      throw new Error("Batch operation order must be a finite number.");
+    }
+
     this.operations.push({
       op,
       order: options.order ?? this.insertCursor,
@@ -28,6 +32,16 @@ export class BatchBuilder {
     });
 
     this.insertCursor += 1;
+    return this;
+  }
+
+  addOperations(
+    ops: ReadonlyArray<StellarSdk.xdr.Operation>,
+    options: BatchOperationOptions = {}
+  ): this {
+    for (const op of ops) {
+      this.addOperation(op, options);
+    }
     return this;
   }
 
@@ -42,12 +56,15 @@ export class BatchBuilder {
   }
 
   get operationsSnapshot(): ReadonlyArray<BatchOperation> {
-    return [...this.operations].sort((a, b) => {
-      if (a.order === b.order) {
-        return 0;
-      }
-      return a.order - b.order;
-    });
+    return this.operations
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        if (a.item.order === b.item.order) {
+          return a.index - b.index;
+        }
+        return a.item.order - b.item.order;
+      })
+      .map(({ item }) => item);
   }
 
   toOperationList(): BatchOperation[] {
